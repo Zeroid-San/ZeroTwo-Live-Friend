@@ -14,6 +14,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
   const [blink, setBlink] = useState(false);
   const target = useRef<Motion>({ x: 0, y: 0, distance: 0 });
   const smooth = useRef<Motion>({ x: 0, y: 0, distance: 0 });
+  const headSmooth = useRef({ x: 0, y: 0 });
   const frame = useRef<number | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const headRef = useRef<SVGGElement | null>(null);
@@ -40,21 +41,27 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
     const tick = () => {
       const current = smooth.current;
       const next = target.current;
-      current.x += (next.x - current.x) * 0.042;
-      current.y += (next.y - current.y) * 0.042;
+      // Eyes respond first with a modest range.
+      current.x += (next.x - current.x) * 0.048;
+      current.y += (next.y - current.y) * 0.048;
       current.distance += (next.distance - current.distance) * 0.05;
+
+      // Head follows behind the eyes with slower easing and much less travel.
+      const headCurrent = headSmooth.current;
+      headCurrent.x += (next.x - headCurrent.x) * 0.019;
+      headCurrent.y += (next.y - headCurrent.y) * 0.019;
 
       const head = headRef.current;
       const eyes = eyesRef.current;
       if (head) {
         head.style.transform =
-          "translate(" + current.x * 2.2 + "px, " + current.y * 1.1 +
-          "px) rotate(" + current.x * 0.42 + "deg)";
+          "translate(" + headCurrent.x * 1.15 + "px, " + headCurrent.y * 0.58 +
+          "px) rotate(" + headCurrent.x * 0.22 + "deg)";
       }
       if (eyes) {
         eyes.style.transform =
-          "translate(" + current.x * (2.8 + current.distance * 0.6) +
-          "px, " + current.y * 1.7 + "px)";
+          "translate(" + current.x * (3.0 + current.distance * 0.45) +
+          "px, " + current.y * 1.8 + "px)";
       }
 
       frame.current = window.requestAnimationFrame(tick);
