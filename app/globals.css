@@ -174,3 +174,14 @@ html::-webkit-scrollbar-corner,body::-webkit-scrollbar-corner,*::-webkit-scrollb
 @keyframes avatarFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-5px,0)}}
 @keyframes avatarGlow{0%,100%{opacity:.72;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
 @media (prefers-reduced-motion:reduce){.avatar2d-idle,.avatar2d-glow{animation:none!important}}
+
+/* Refined sidebar icon treatment */
+.icon-wrap svg,.chat-icon svg,.sidebar-toggle svg{stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.sidebar-toggle{transition:color .16s ease,background .16s ease,border-color .16s ease,transform .16s ease}
+.sidebar-toggle:active{transform:scale(.94)}
+.new-chat .icon-wrap,.settings-item .icon-wrap,.chat-icon{transition:color .16s ease,transform .16s ease}
+.new-chat:hover .icon-wrap,.settings-item:hover .icon-wrap{transform:scale(1.04)}
+.chat-item.current .chat-icon{filter:drop-shadow(0 0 5px #ff5f8b44)}
+.terminal-title{margin-left:6px}
+.terminal-status{margin-left:auto;color:#777;font-size:9px;letter-spacing:.8px}
+.terminal-status.connected{color:#55e39a}
