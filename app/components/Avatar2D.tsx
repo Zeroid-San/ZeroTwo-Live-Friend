@@ -234,7 +234,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
             apiRef.current = api;
             api.setUserInteraction(false);
             api.setCameraEasing("easeOutCubic");
-            api.setFov(52);
+            api.setFov(45);
 
             api.start(() => {
               api.addEventListener("viewerready", () => {
@@ -251,10 +251,10 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
                   // full head + a little air above it, ending around the upper stomach.
                   // Passport-style portrait: head centered, a little headroom,
                   // shoulders visible, and the frame ending around the upper chest.
-                  const framingOffset = scale(normalize(offset), distance * 1.08);
+                  const framingOffset = scale(normalize(offset), distance * 1.04);
                   const framingTarget: Vec3 = [
                     camera.target[0],
-                    camera.target[1] + distance * 0.52,
+                    camera.target[1] + distance * 0.49,
                     camera.target[2],
                   ];
 
