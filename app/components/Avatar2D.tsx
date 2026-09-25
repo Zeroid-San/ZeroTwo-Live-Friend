@@ -178,8 +178,8 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
         const up: Vec3 = [0, 1, 0];
         const right = normalize(cross(forward, up));
 
-        const yaw = smooth.x * 0.105;
-        const pitch = -smooth.y * 0.065;
+        const yaw = smooth.x * 0.075;
+        const pitch = -smooth.y * 0.045;
 
         let offset = rotateAroundAxis(baseOffset, up, yaw);
         offset = rotateAroundAxis(offset, right, pitch);
@@ -234,7 +234,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
             apiRef.current = api;
             api.setUserInteraction(false);
             api.setCameraEasing("easeOutCubic");
-            api.setFov(34);
+            api.setFov(36);
 
             api.start(() => {
               api.addEventListener("viewerready", () => {
@@ -253,10 +253,10 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
                   // shoulders visible, and the frame ending around the upper chest.
                   // Tight face portrait: move the camera target well above the
                   // model midpoint so the face, not the waist, anchors the frame.
-                  const framingOffset = scale(normalize(offset), distance * 0.84);
+                  const framingOffset = scale(normalize(offset), distance * 0.88);
                   const framingTarget: Vec3 = [
                     camera.target[0],
-                    camera.target[1] + distance * 0.96,
+                    camera.target[1] + distance * 0.90,
                     camera.target[2],
                   ];
 
