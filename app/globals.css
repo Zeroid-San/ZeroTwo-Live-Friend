@@ -165,3 +165,12 @@ html::-webkit-scrollbar-corner,body::-webkit-scrollbar-corner,*::-webkit-scrollb
 .chat-icon svg{width:15px;height:15px}
 .settings-item .icon-wrap{color:#85858f}
 .settings-item:hover .icon-wrap{color:#fff}
+
+/* Natural face motion */
+.avatar2d-idle{transform-origin:260px 340px;animation:avatarFloat 5.8s ease-in-out infinite}
+.avatar2d-head{transform-origin:260px 300px;transition:transform .09s cubic-bezier(.2,.7,.2,1);will-change:transform}
+.avatar2d-wrap{touch-action:none}
+.avatar2d-glow{animation:avatarGlow 4.6s ease-in-out infinite}
+@keyframes avatarFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-5px,0)}}
+@keyframes avatarGlow{0%,100%{opacity:.72;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.avatar2d-idle,.avatar2d-glow{animation:none!important}}
