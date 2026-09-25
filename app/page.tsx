@@ -34,13 +34,13 @@ const modelOptions = {
 } as const;
 
 
-function SidebarIcon({ type }: { type: "new" | "search" | "settings" | "collapse" | "chat" }) {
-  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+function SidebarIcon({ type, collapsed = false }: { type: "new" | "search" | "settings" | "collapse" | "chat"; collapsed?: boolean }) {
+  const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   if (type === "new") return <svg {...common}><path d="M12 5v14M5 12h14" /></svg>;
-  if (type === "search") return <svg {...common}><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>;
-  if (type === "settings") return <svg {...common}><path d="M12 3.8 14 5l2.2-.4 1.4 1.8-.6 2.1 1.2 1.8 2.1.5v2.4l-2.1.5-1.2 1.8.6 2.1-1.4 1.8-2.2-.4-2 1.2-2-1.2-2.2.4-1.4-1.8.6-2.1-1.2-1.8-2.1-.5V11l2.1-.5L6.6 8.5 6 6.4 7.4 4.6l2.2.4z" /><circle cx="12" cy="12" r="2.8" /></svg>;
-  if (type === "collapse") return <svg {...common}><path d="M15 6 9 12l6 6" /></svg>;
-  return <svg {...common}><path d="M5 5h14v11H5z" /><path d="M8 19h8M12 16v3" /></svg>;
+  if (type === "search") return <svg {...common}><circle cx="10.8" cy="10.8" r="6.7" /><path d="m16 16 4.2 4.2" /></svg>;
+  if (type === "settings") return <svg {...common}><path d="M9.6 4.2 10.9 3h2.2l1.3 1.2.2 1.8 1.7 1 .1-0.1 1.8-.4 1.6 1.6-.4 1.8 1 1.7 1.8.2v2.2l-1.8.2-1 1.7.4 1.8-1.6 1.6-1.8-.4-1.7 1-.2 1.8h-2.2l-.2-1.8-1.7-1-1.8.4-1.6-1.6.4-1.8-1-1.7L3.8 13v-2.2l1.8-.2 1-1.7-.4-1.8 1.6-1.6 1.8.4 1.7-1 .3-1.7Z" /><circle cx="12" cy="11.9" r="2.7" /></svg>;
+  if (type === "collapse") return <svg {...common}><path d={collapsed ? "m9 6 6 6-6 6" : "m15 6-6 6 6 6"} /></svg>;
+  return <svg {...common}><path d="M5 6.5h14v10.5H5z" /><path d="m8 10 2.2 2L8 14M12 14h4" /></svg>;
 }
 
 function makeTitle(messages: Message[]) {
@@ -334,17 +334,13 @@ export default function Home() {
     }
   }
 
-  function clearChat() {
-    startNewChat();
-  }
-
   const avatarState = speaking ? "speaking" : busy ? "thinking" : listening ? "listening" : "idle";
 
   return (
     <main className={sidebarCollapsed ? "studio sidebar-is-collapsed" : "studio"}>
       <aside className="sidebar">
         <div className="sidebar-top">
-          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}><SidebarIcon type="collapse" /></button>
+          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}><SidebarIcon type="collapse" collapsed={sidebarCollapsed} /></button>
           {!sidebarCollapsed && (
             <div className="sidebar-brand">
               <div className="sidebar-mark">ZT</div>
@@ -422,14 +418,8 @@ export default function Home() {
       </aside>
 
       <section className="main-shell">
-        <header className="compact-bar">
-          <div className="status"><i /> AI ONLINE</div>
-        </header>
-
-<div className="main-view">
+        <div className="main-view">
           <div className="companion-stage">
-              <div className="panel-title"><span>HOME</span> COMPANION</div>
-
               <div className="character-wrap">
                 <div className="aura" />
                 <div className="character-card avatar-card">
@@ -446,12 +436,6 @@ export default function Home() {
                     <span>{message.content}</span>
                   </div>
                 ))}
-              </div>
-
-              <div className="quick-actions">
-                <button onClick={startListening}>{listening ? "Listening..." : "Talk"}</button>
-                <button onClick={() => setAutoSpeak(v => !v)}>{autoSpeak ? "Auto voice ON" : "Auto voice OFF"}</button>
-                <button onClick={startNewChat}>New chat</button>
               </div>
 
               <form onSubmit={sendMessage} className="composer">
@@ -524,7 +508,6 @@ export default function Home() {
         </div>
       )}
 
-      <footer><span>ZEROTWO AI STUDIO</span><span>2D Face · AI Chat · Voice</span></footer>
     </main>
   );
 }
