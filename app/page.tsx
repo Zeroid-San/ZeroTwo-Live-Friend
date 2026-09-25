@@ -391,10 +391,6 @@ export default function Home() {
       <section className="main-shell">
         <header className="compact-bar">
           <div className="status"><i /> AI ONLINE</div>
-          <div className="compact-actions">
-            <button onClick={() => setVoiceEnabled(v => !v)}>{voiceEnabled ? "Voice ON" : "Voice OFF"}</button>
-            <button onClick={() => openSettings("general")}>Settings</button>
-          </div>
         </header>
 
         <div className="companion-stage">
