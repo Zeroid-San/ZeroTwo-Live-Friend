@@ -277,3 +277,52 @@ html::-webkit-scrollbar-corner,body::-webkit-scrollbar-corner,*::-webkit-scrollb
 @media(max-width:560px){
   .avatar3d-credit{font-size:7px;bottom:5px}
 }
+
+
+/* View-only Sketchfab character: hide viewer chrome and frame the upper body. */
+.avatar3d-wrap .avatar3d-viewer{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  border-radius:inherit;
+  isolation:isolate;
+  background:radial-gradient(circle at 50% 38%,#25131d 0,#0d0c10 58%,#08080b 100%);
+}
+.avatar3d-wrap .avatar3d-iframe{
+  position:absolute;
+  left:-22%;
+  top:-28%;
+  width:144%;
+  height:156%;
+  display:block;
+  border:0;
+  transform:scale(1.06);
+  transform-origin:50% 34%;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.avatar3d-wrap .avatar2d-glow{
+  z-index:2;
+  pointer-events:none;
+}
+.avatar3d-wrap .avatar2d-status{
+  z-index:4;
+  pointer-events:none;
+}
+@media(max-width:820px){
+  .avatar3d-wrap .avatar3d-iframe{
+    left:-28%;
+    top:-29%;
+    width:156%;
+    height:160%;
+  }
+}
+@media(max-width:560px){
+  .avatar3d-wrap .avatar3d-iframe{
+    left:-33%;
+    top:-31%;
+    width:166%;
+    height:164%;
+  }
+}
