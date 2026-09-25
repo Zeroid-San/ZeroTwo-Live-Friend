@@ -489,7 +489,6 @@ export default function Home() {
                 <>
                   <div className="settings-section-title">AI & API</div>
                   <div className="api-warning">Use a session API key for your own testing, or leave this blank to use the secure server-side Vercel key.</div>
-                  <label className="field-label">Provider</label>
                   <label className="field-label">AI provider</label>
                   <select className="settings-input" value={provider} onChange={e => changeProvider(e.target.value as "auto" | "openai" | "gemini")}>
                     <option value="auto">Auto (server configured)</option>
