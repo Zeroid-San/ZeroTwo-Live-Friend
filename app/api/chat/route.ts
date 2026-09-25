@@ -11,42 +11,53 @@ export async function POST(request: Request) {
     const body = await request.json();
     const messages = Array.isArray(body.messages) ? body.messages as Message[] : [];
     const requestedProvider = body.provider === "openai" || body.provider === "gemini" ? body.provider : "auto";
+    const customApiKey = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
+    const customModel = typeof body.model === "string" ? body.model.trim() : "";
 
-    // Standard name is OPENAI_API_KEY. OPENAI_API is also accepted for compatibility.
-    const openaiKey = (process.env.OPENAI_API_KEY || process.env.OPENAI_API || "").trim();
-    const geminiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const serverOpenAIKey = (process.env.OPENAI_API_KEY || process.env.OPENAI_API || "").trim();
+    const serverGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
 
     if (!messages.length) return NextResponse.json({ error: "No messages supplied." }, { status: 400 });
 
     const provider = requestedProvider === "auto"
-      ? openaiKey ? "openai" : geminiKey ? "gemini" : null
+      ? customApiKey ? "openai" : serverOpenAIKey ? "openai" : serverGeminiKey ? "gemini" : null
       : requestedProvider;
 
     if (!provider) {
-      return NextResponse.json({ error: "Add OPENAI_API_KEY (or OPENAI_API) or GEMINI_API_KEY in Vercel Environment Variables, then redeploy." }, { status: 500 });
+      return NextResponse.json({ error: "No AI API is configured. Add a key in Settings or Vercel Environment Variables." }, { status: 500 });
     }
 
     if (provider === "openai") {
-      if (!openaiKey) return NextResponse.json({ error: "OpenAI API key is not configured. Add OPENAI_API_KEY in Vercel and redeploy." }, { status: 500 });
+      const openaiKey = customApiKey || serverOpenAIKey;
+      if (!openaiKey) {
+        return NextResponse.json({ error: "OpenAI API is not configured. Add an API key in Settings or Vercel." }, { status: 500 });
+      }
+
       const client = new OpenAI({ apiKey: openaiKey });
       const response = await client.responses.create({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
+        model: customModel || process.env.OPENAI_MODEL || "gpt-5.6-luna",
         instructions,
         input: messages.map(message => ({ role: message.role, content: message.content }))
       });
+
       return NextResponse.json({ text: response.output_text, provider: "openai" });
     }
 
-    if (!geminiKey) return NextResponse.json({ error: "GEMINI_API_KEY is not configured." }, { status: 500 });
+    const geminiKey = customApiKey || serverGeminiKey;
+    if (!geminiKey) {
+      return NextResponse.json({ error: "Gemini API is not configured. Add an API key in Settings or Vercel." }, { status: 500 });
+    }
+
     const ai = new GoogleGenAI({ apiKey: geminiKey });
     const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || "gemini-3.8-flash",
+      model: customModel || process.env.GEMINI_MODEL || "gemini-3.8-flash",
       contents: messages.map(message => ({
         role: message.role === "assistant" ? "model" : "user",
         parts: [{ text: message.content }]
       })),
       config: { systemInstruction: instructions }
     });
+
     return NextResponse.json({ text: response.text, provider: "gemini" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "AI request failed.";
