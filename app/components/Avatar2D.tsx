@@ -11,12 +11,13 @@ type Motion = {
 };
 
 export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
-  const [motion, setMotion] = useState<Motion>({ x: 0, y: 0, distance: 0 });
   const [blink, setBlink] = useState(false);
   const target = useRef<Motion>({ x: 0, y: 0, distance: 0 });
   const smooth = useRef<Motion>({ x: 0, y: 0, distance: 0 });
   const frame = useRef<number | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const headRef = useRef<SVGGElement | null>(null);
+  const eyesRef = useRef<SVGGElement | null>(null);
 
   useEffect(() => {
     const updateTarget = (event: MouseEvent) => {
@@ -29,9 +30,9 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
       const rangeX = Math.max(rect.width * 0.62, 1);
       const rangeY = Math.max(rect.height * 0.5, 1);
 
-      const x = Math.max(-1, Math.min(1, (event.clientX - centerX) / rangeX));
-      const y = Math.max(-1, Math.min(1, (event.clientY - centerY) / rangeY));
-      const distance = Math.min(1, Math.sqrt(x * x + y * y) / 1.15);
+      const x = Math.max(-0.72, Math.min(0.72, (event.clientX - centerX) / rangeX));
+      const y = Math.max(-0.55, Math.min(0.55, (event.clientY - centerY) / rangeY));
+      const distance = Math.min(1, Math.sqrt(x * x + y * y) / 0.88);
 
       target.current = { x, y, distance };
     };
@@ -39,10 +40,23 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
     const tick = () => {
       const current = smooth.current;
       const next = target.current;
-      current.x += (next.x - current.x) * 0.075;
-      current.y += (next.y - current.y) * 0.075;
-      current.distance += (next.distance - current.distance) * 0.085;
-      setMotion({ ...current });
+      current.x += (next.x - current.x) * 0.042;
+      current.y += (next.y - current.y) * 0.042;
+      current.distance += (next.distance - current.distance) * 0.05;
+
+      const head = headRef.current;
+      const eyes = eyesRef.current;
+      if (head) {
+        head.style.transform =
+          "translate(" + current.x * 2.2 + "px, " + current.y * 1.1 +
+          "px) rotate(" + current.x * 0.42 + "deg)";
+      }
+      if (eyes) {
+        eyes.style.transform =
+          "translate(" + current.x * (2.8 + current.distance * 0.6) +
+          "px, " + current.y * 1.7 + "px)";
+      }
+
       frame.current = window.requestAnimationFrame(tick);
     };
 
@@ -78,21 +92,6 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
     };
   }, []);
 
-  const headTransform =
-    "translate(" +
-    motion.x * 3.5 +
-    "px, " +
-    motion.y * 1.8 +
-    "px) rotate(" +
-    motion.x * 0.9 +
-    "deg)";
-
-  const eyeTransform =
-    "translate(" +
-    motion.x * (6.2 + motion.distance * 1.5) +
-    "px, " +
-    motion.y * 3.1 +
-    "px)";
 
   const eyeRy = blink ? 2.2 : state === "thinking" ? 24 : 29;
   const pupilScale = 0.86 + motion.distance * 0.1;
@@ -121,7 +120,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
         </defs>
 
         <g className="avatar2d-idle">
-          <g className="avatar2d-head" style={{ transform: headTransform }}>
+          <g ref={headRef} className="avatar2d-head">
             <path d="M113 215C83 118 130 46 220 77c27-27 66-35 100-23 76-26 126 43 102 127l-22 69H139z" fill="url(#avatarHair)" filter="url(#avatarShadow)" />
             <path d="M108 216C85 179 83 126 118 86c35-39 79-45 116-27-57 3-95 36-106 85z" fill="#ef4d83" />
             <path d="M412 216c23-37 25-90-10-130-35-39-79-45-116-27 57 3 95 36 106 85z" fill="#cf2e68" />
@@ -140,7 +139,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
             <path d="M166 236c25-17 58-20 84-9" fill="none" stroke="#7a2947" strokeWidth="9" strokeLinecap="round" />
             <path d="M354 236c-25-17-58-20-84-9" fill="none" stroke="#7a2947" strokeWidth="9" strokeLinecap="round" />
 
-            <g style={{ transform: eyeTransform }}>
+            <g ref={eyesRef}>
               <ellipse cx="203" cy="286" rx="39" ry={blink ? 2.4 : 30} fill="#fff8fb" />
               <ellipse cx="317" cy="286" rx="39" ry={blink ? 2.4 : 30} fill="#fff8fb" />
 
