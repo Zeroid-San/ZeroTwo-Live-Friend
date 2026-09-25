@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2
+numpy>=1.26
+scipy>=1.13
+torch
+torchaudio
+chatterbox-tts
