@@ -326,3 +326,30 @@ html::-webkit-scrollbar-corner,body::-webkit-scrollbar-corner,*::-webkit-scrollb
     height:164%;
   }
 }
+
+
+/* Final 3D companion framing: head through upper-stomach, no viewer interaction. */
+.avatar3d-wrap .avatar3d-viewer{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  border-radius:inherit;
+  isolation:isolate;
+  background:radial-gradient(circle at 50% 38%,#25131d 0,#0d0c10 58%,#08080b 100%);
+}
+.avatar3d-wrap .avatar3d-iframe{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+  border:0;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-select:none;
+  transform:none;
+}
+.avatar3d-wrap .avatar2d-status,
+.avatar3d-wrap .avatar3d-credit{
+  display:none!important;
+}
