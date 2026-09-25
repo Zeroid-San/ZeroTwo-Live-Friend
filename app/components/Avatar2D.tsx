@@ -234,7 +234,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
             apiRef.current = api;
             api.setUserInteraction(false);
             api.setCameraEasing("easeOutCubic");
-            api.setFov(38);
+            api.setFov(46);
 
             api.start(() => {
               api.addEventListener("viewerready", () => {
@@ -249,10 +249,10 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
 
                   // Use a slightly wider, farther portrait framing:
                   // full head + a little air above it, ending around the upper stomach.
-                  const framingOffset = scale(normalize(offset), distance * 0.72);
+                  const framingOffset = scale(normalize(offset), distance * 0.96);
                   const framingTarget: Vec3 = [
                     camera.target[0],
-                    camera.target[1] + distance * 0.07,
+                    camera.target[1] + distance * 0.31,
                     camera.target[2],
                   ];
 
