@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { TerminalPanel } from "./components/TerminalPanel";
 
 const Avatar3D = dynamic(() => import("./components/Avatar3D").then(mod => mod.Avatar3D), {
@@ -11,13 +11,24 @@ const Avatar3D = dynamic(() => import("./components/Avatar3D").then(mod => mod.A
 
 type Message = { role: "user" | "assistant"; content: string };
 type Theme = "midnight" | "black" | "plum";
+type Chat = { id: string; title: string; messages: Message[]; updatedAt: number };
 
-const starter: Message[] = [
-  { role: "assistant", content: "Hey. I’m here." }
-];
+const starter: Message[] = [{ role: "assistant", content: "Hey. I’m here." }];
+
+function makeTitle(messages: Message[]) {
+  const firstUser = messages.find(message => message.role === "user")?.content?.trim();
+  if (!firstUser) return "New chat";
+  return firstUser.replace(/\s+/g, " ").slice(0, 34) || "New chat";
+}
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>(starter);
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [currentChatId, setCurrentChatId] = useState("current");
+  const [searchChats, setSearchChats] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [input, setInput] = useState("");
   const [provider, setProvider] = useState("auto");
   const [model, setModel] = useState("");
@@ -38,7 +49,20 @@ export default function Home() {
 
   useEffect(() => {
     const savedMessages = localStorage.getItem("zt-live-messages");
-    if (savedMessages) setMessages(JSON.parse(savedMessages));
+    if (savedMessages) {
+      try { setMessages(JSON.parse(savedMessages)); } catch {}
+    }
+
+    const savedChats = localStorage.getItem("zt-chats");
+    if (savedChats) {
+      try { setChats(JSON.parse(savedChats)); } catch {}
+    }
+
+    const savedChatId = localStorage.getItem("zt-current-chat");
+    if (savedChatId) setCurrentChatId(savedChatId);
+
+    const savedSidebar = localStorage.getItem("zt-sidebar-collapsed");
+    if (savedSidebar !== null) setSidebarCollapsed(savedSidebar === "true");
 
     const savedTheme = localStorage.getItem("zt-theme") as Theme | null;
     if (savedTheme) setTheme(savedTheme);
@@ -72,7 +96,31 @@ export default function Home() {
 
   useEffect(() => {
     localStorage.setItem("zt-live-messages", JSON.stringify(messages));
-  }, [messages]);
+    localStorage.setItem("zt-current-chat", currentChatId);
+  }, [messages, currentChatId]);
+
+  useEffect(() => {
+    if (!currentChatId || currentChatId === "current") return;
+    setChats(current => {
+      const existing = current.find(chat => chat.id === currentChatId);
+      const nextChat: Chat = {
+        id: currentChatId,
+        title: makeTitle(messages),
+        messages,
+        updatedAt: Date.now()
+      };
+      if (!existing) return [...current, nextChat];
+      return current.map(chat => chat.id === currentChatId ? nextChat : chat);
+    });
+  }, [messages, currentChatId]);
+
+  useEffect(() => {
+    localStorage.setItem("zt-chats", JSON.stringify(chats));
+  }, [chats]);
+
+  useEffect(() => {
+    localStorage.setItem("zt-sidebar-collapsed", String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     localStorage.setItem("zt-theme", theme);
@@ -84,6 +132,30 @@ export default function Home() {
     document.documentElement.style.setProperty("--user-text", textColor);
   }, [textColor]);
 
+  useEffect(() => {
+    localStorage.setItem("zt-voice", String(voiceEnabled));
+  }, [voiceEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem("zt-auto-speak", String(autoSpeak));
+  }, [autoSpeak]);
+
+  useEffect(() => {
+    localStorage.setItem("zt-enter-send", String(enterToSend));
+  }, [enterToSend]);
+
+  const filteredChats = useMemo(() => {
+    const query = searchChats.trim().toLowerCase();
+    return [...chats]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .filter(chat => !query || chat.title.toLowerCase().includes(query));
+  }, [chats, searchChats]);
+
+  function openSettings(tab: "general" | "ai" | "appearance") {
+    setSettingsTab(tab);
+    setSettingsOpen(true);
+  }
+
   function saveApiSettings() {
     localStorage.setItem("zt-provider", provider);
     localStorage.setItem("zt-model", model);
@@ -91,6 +163,40 @@ export default function Home() {
       if (apiKey.trim()) sessionStorage.setItem("zt-api-key", apiKey.trim());
       else sessionStorage.removeItem("zt-api-key");
     } catch {}
+  }
+
+  function startNewChat() {
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
+    const id = crypto.randomUUID();
+    setCurrentChatId(id);
+    setMessages(starter);
+    setInput("");
+  }
+
+  function openChat(chat: Chat) {
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
+    setCurrentChatId(chat.id);
+    setMessages(chat.messages);
+    setInput("");
+  }
+
+  function deleteChat(id: string) {
+    setChats(current => current.filter(chat => chat.id !== id));
+    if (currentChatId === id) startNewChat();
+  }
+
+  function beginRename(chat: Chat) {
+    setRenamingId(chat.id);
+    setRenameValue(chat.title);
+  }
+
+  function finishRename(id: string) {
+    const title = renameValue.trim().slice(0, 48);
+    if (title) setChats(current => current.map(chat => chat.id === id ? { ...chat, title, updatedAt: Date.now() } : chat));
+    setRenamingId(null);
+    setRenameValue("");
   }
 
   async function speak(text: string) {
@@ -153,6 +259,11 @@ export default function Home() {
     const text = input.trim();
     if (!text || busy) return;
 
+    if (currentChatId === "current") {
+      const id = crypto.randomUUID();
+      setCurrentChatId(id);
+    }
+
     const nextMessages = [...messages, { role: "user" as const, content: text }];
     setMessages(nextMessages);
     setInput("");
@@ -185,46 +296,95 @@ export default function Home() {
   }
 
   function clearChat() {
-    setMessages(starter);
-    localStorage.removeItem("zt-live-messages");
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
+    startNewChat();
   }
 
   const avatarState = speaking ? "speaking" : busy ? "thinking" : listening ? "listening" : "idle";
 
   return (
-    <main className="studio">
+    <main className={sidebarCollapsed ? "studio sidebar-is-collapsed" : "studio"}>
       <aside className="sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-mark">ZT</div>
-          <span>ZeroTwo</span>
+        <div className="sidebar-top">
+          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? "»" : "«"}</button>
+          {!sidebarCollapsed && (
+            <div className="sidebar-brand">
+              <div className="sidebar-mark">ZT</div>
+              <span>ZeroTwo</span>
+            </div>
+          )}
         </div>
 
-        <button className="new-chat" onClick={clearChat}>
+        <button className="new-chat" onClick={startNewChat} title="New chat">
           <span>＋</span>
-          New chat
+          {!sidebarCollapsed && "New chat"}
         </button>
 
+        {!sidebarCollapsed && (
+          <div className="chat-search">
+            <span>⌕</span>
+            <input value={searchChats} onChange={e => setSearchChats(e.target.value)} placeholder="Search chats" />
+          </div>
+        )}
+
         <nav className="sidebar-nav">
-          <button className="side-item active"><span>⌂</span> Companion</button>
-          <button className="side-item" onClick={() => { setSettingsTab("ai"); setSettingsOpen(true); }}><span>✦</span> AI</button>
-          <button className="side-item" onClick={() => { setSettingsTab("appearance"); setSettingsOpen(true); }}><span>◈</span> Appearance</button>
+          <button className="side-item active" title="Companion"><span>⌂</span>{!sidebarCollapsed && "Companion"}</button>
+          <button className="side-item" onClick={() => openSettings("ai")} title="AI"><span>✦</span>{!sidebarCollapsed && "AI"}</button>
+          <button className="side-item" onClick={() => openSettings("appearance")} title="Appearance"><span>◈</span>{!sidebarCollapsed && "Appearance"}</button>
         </nav>
+
+        {!sidebarCollapsed && (
+          <div className="chat-history">
+            <div className="history-label">CHATS</div>
+            {filteredChats.length === 0 ? (
+              <div className="history-empty">Your conversations will appear here.</div>
+            ) : (
+              filteredChats.map(chat => (
+                <div key={chat.id} className={chat.id === currentChatId ? "chat-item current" : "chat-item"}>
+                  {renamingId === chat.id ? (
+                    <input
+                      className="rename-input"
+                      autoFocus
+                      value={renameValue}
+                      onChange={e => setRenameValue(e.target.value)}
+                      onBlur={() => finishRename(chat.id)}
+                      onKeyDown={e => {
+                        if (e.key === "Enter") finishRename(chat.id);
+                        if (e.key === "Escape") { setRenamingId(null); setRenameValue(""); }
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <button className="chat-open" onClick={() => openChat(chat)}>
+                        <span className="chat-icon">◌</span>
+                        <span className="chat-title">{chat.title}</span>
+                      </button>
+                      <div className="chat-actions">
+                        <button onClick={() => beginRename(chat)} title="Rename">⋯</button>
+                        <button onClick={() => deleteChat(chat.id)} title="Delete">×</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         <div className="sidebar-spacer" />
 
-        <button className="side-item settings-item" onClick={() => { setSettingsTab("general"); setSettingsOpen(true); }}>
+        <button className="side-item settings-item" onClick={() => openSettings("general")} title="Settings">
           <span>⚙</span>
-          Settings
+          {!sidebarCollapsed && "Settings"}
         </button>
 
         <div className="sidebar-user">
           <div className="user-avatar">Z</div>
-          <div>
-            <strong>ZeroTwo AI</strong>
-            <span>Live companion</span>
-          </div>
+          {!sidebarCollapsed && (
+            <div>
+              <strong>ZeroTwo AI</strong>
+              <span>Live companion</span>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -233,7 +393,7 @@ export default function Home() {
           <div className="status"><i /> AI ONLINE</div>
           <div className="compact-actions">
             <button onClick={() => setVoiceEnabled(v => !v)}>{voiceEnabled ? "Voice ON" : "Voice OFF"}</button>
-            <button onClick={() => setSettingsOpen(true)}>Settings</button>
+            <button onClick={() => openSettings("general")}>Settings</button>
           </div>
         </header>
 
@@ -247,10 +407,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="presence-dot">
-            <i />
-            {speaking ? "Speaking" : busy ? "Thinking" : listening ? "Listening" : "Ready"}
-          </div>
+          <div className="presence-dot"><i />{speaking ? "Speaking" : busy ? "Thinking" : listening ? "Listening" : "Ready"}</div>
 
           <div className="chat-messages">
             {messages.slice(-8).map((message, index) => (
@@ -264,17 +421,12 @@ export default function Home() {
           <div className="quick-actions">
             <button onClick={startListening}>{listening ? "Listening..." : "Talk"}</button>
             <button onClick={() => setAutoSpeak(v => !v)}>{autoSpeak ? "Auto voice ON" : "Auto voice OFF"}</button>
-            <button onClick={clearChat}>New chat</button>
+            <button onClick={startNewChat}>New chat</button>
           </div>
 
           <form onSubmit={sendMessage} className="composer">
             <button type="button" className="mic-button" onClick={startListening}>◉</button>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleComposerKeyDown}
-              placeholder={listening ? "Listening..." : "Message ZeroTwo..."}
-            />
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleComposerKeyDown} placeholder={listening ? "Listening..." : "Message ZeroTwo..."} />
             <button className="send" disabled={busy || !input.trim()}>Send</button>
           </form>
         </div>
@@ -282,7 +434,7 @@ export default function Home() {
 
       {settingsOpen && (
         <div className="settings-overlay" onClick={() => setSettingsOpen(false)}>
-          <section className="settings-panel" onClick={(e) => e.stopPropagation()}>
+          <section className="settings-panel" onClick={e => e.stopPropagation()}>
             <div className="settings-sidebar">
               <div className="settings-mini-brand">SETTINGS</div>
               <button className={settingsTab === "general" ? "settings-tab active" : "settings-tab"} onClick={() => setSettingsTab("general")}>General</button>
@@ -296,28 +448,11 @@ export default function Home() {
               {settingsTab === "general" && (
                 <>
                   <div className="settings-section-title">General</div>
-                  <div className="settings-control">
-                    <div><strong>Voice</strong><span>Turn all voice output on or off.</span></div>
-                    <button onClick={() => setVoiceEnabled(v => !v)}>{voiceEnabled ? "ON" : "OFF"}</button>
-                  </div>
-                  <div className="settings-control">
-                    <div><strong>Auto voice</strong><span>Speak every AI reply automatically.</span></div>
-                    <button onClick={() => setAutoSpeak(v => !v)}>{autoSpeak ? "ON" : "OFF"}</button>
-                  </div>
-                  <div className="settings-control">
-                    <div><strong>Enter to send</strong><span>Press Enter to send your message.</span></div>
-                    <button onClick={() => setEnterToSend(v => !v)}>{enterToSend ? "ON" : "OFF"}</button>
-                  </div>
-                  <div className="settings-control">
-                    <div><strong>Language</strong><span>Used for microphone recognition and browser voice fallback.</span></div>
-                    <select value={language} onChange={(e) => { setLanguage(e.target.value); localStorage.setItem("zt-language", e.target.value); }}>
-                      <option value="en-US">English (US)</option>
-                      <option value="en-GB">English (UK)</option>
-                      <option value="ja-JP">Japanese</option>
-                      <option value="ko-KR">Korean</option>
-                      <option value="hi-IN">Hindi</option>
-                    </select>
-                  </div>
+                  <div className="settings-control"><div><strong>Voice</strong><span>Turn all voice output on or off.</span></div><button onClick={() => setVoiceEnabled(v => !v)}>{voiceEnabled ? "ON" : "OFF"}</button></div>
+                  <div className="settings-control"><div><strong>Auto voice</strong><span>Speak every AI reply automatically.</span></div><button onClick={() => setAutoSpeak(v => !v)}>{autoSpeak ? "ON" : "OFF"}</button></div>
+                  <div className="settings-control"><div><strong>Enter to send</strong><span>Press Enter to send your message.</span></div><button onClick={() => setEnterToSend(v => !v)}>{enterToSend ? "ON" : "OFF"}</button></div>
+                  <div className="settings-control"><div><strong>Sidebar</strong><span>Collapse or expand the sidebar.</span></div><button onClick={() => setSidebarCollapsed(v => !v)}>{sidebarCollapsed ? "EXPAND" : "COLLAPSE"}</button></div>
+                  <div className="settings-control"><div><strong>Language</strong><span>Used for microphone recognition and browser voice fallback.</span></div><select value={language} onChange={e => { setLanguage(e.target.value); localStorage.setItem("zt-language", e.target.value); }}><option value="en-US">English (US)</option><option value="en-GB">English (UK)</option><option value="ja-JP">Japanese</option><option value="ko-KR">Korean</option><option value="hi-IN">Hindi</option></select></div>
                   {terminalOpen && <div className="terminal-drawer"><div className="terminal-drawer-title">Developer Terminal</div><TerminalPanel /></div>}
                 </>
               )}
@@ -325,22 +460,15 @@ export default function Home() {
               {settingsTab === "ai" && (
                 <>
                   <div className="settings-section-title">AI & API</div>
-                  <div className="api-warning">Your custom key is kept in this browser session and sent directly to the server only when you chat. For a shared production key, keep using Vercel Environment Variables.</div>
+                  <div className="api-warning">Use a session API key for your own testing, or leave this blank to use the secure server-side Vercel key.</div>
                   <label className="field-label">Provider</label>
-                  <select className="settings-input" value={provider} onChange={(e) => setProvider(e.target.value)}>
-                    <option value="auto">Auto</option>
-                    <option value="openai">OpenAI / ChatGPT</option>
-                    <option value="gemini">Google Gemini</option>
-                  </select>
+                  <select className="settings-input" value={provider} onChange={e => setProvider(e.target.value)}><option value="auto">Auto</option><option value="openai">OpenAI / ChatGPT</option><option value="gemini">Google Gemini</option></select>
                   <label className="field-label">API key</label>
-                  <input className="settings-input" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="Paste your API key here" />
+                  <input className="settings-input" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key here" />
                   <label className="field-label">Model (optional)</label>
-                  <input className="settings-input" value={model} onChange={(e) => setModel(e.target.value)} placeholder={provider === "gemini" ? "e.g. gemini-3.8-flash" : "e.g. gpt-5.6-luna"} />
-                  <div className="api-actions">
-                    <button onClick={saveApiSettings} className="save-button">Save API settings</button>
-                    <button onClick={() => { setApiKey(""); try { sessionStorage.removeItem("zt-api-key"); } catch {} }}>Clear key</button>
-                  </div>
-                  <p className="settings-small">Leave API key blank to use the server-side Vercel key. The API key is not written to GitHub by this UI.</p>
+                  <input className="settings-input" value={model} onChange={e => setModel(e.target.value)} placeholder={provider === "gemini" ? "e.g. gemini-3.8-flash" : "e.g. gpt-5.6-luna"} />
+                  <div className="api-actions"><button onClick={saveApiSettings} className="save-button">Save API settings</button><button onClick={() => { setApiKey(""); try { sessionStorage.removeItem("zt-api-key"); } catch {} }}>Clear key</button></div>
+                  <p className="settings-small">The custom key is stored only in this browser session. It is never committed to GitHub.</p>
                 </>
               )}
 
@@ -348,21 +476,10 @@ export default function Home() {
                 <>
                   <div className="settings-section-title">Appearance</div>
                   <div className="theme-grid">
-                    {(["midnight", "black", "plum"] as Theme[]).map(item => (
-                      <button key={item} className={theme === item ? "theme-option active" : "theme-option"} onClick={() => setTheme(item)}>
-                        <span className={"theme-preview " + item} />
-                        <b>{item[0].toUpperCase() + item.slice(1)}</b>
-                      </button>
-                    ))}
+                    {(["midnight", "black", "plum"] as Theme[]).map(item => <button key={item} className={theme === item ? "theme-option active" : "theme-option"} onClick={() => setTheme(item)}><span className={"theme-preview " + item} /><b>{item[0].toUpperCase() + item.slice(1)}</b></button>)}
                   </div>
-                  <div className="settings-control">
-                    <div><strong>Font color</strong><span>Choose the main website text color.</span></div>
-                    <input className="color-input" type="color" value={textColor} onChange={(e) => setTextColor(e.target.value)} />
-                  </div>
-                  <div className="settings-control">
-                    <div><strong>Reset appearance</strong><span>Return to the default dark look.</span></div>
-                    <button onClick={() => { setTheme("midnight"); setTextColor("#f5f5f7"); }}>Reset</button>
-                  </div>
+                  <div className="settings-control"><div><strong>Font color</strong><span>Choose the main website text color.</span></div><input className="color-input" type="color" value={textColor} onChange={e => setTextColor(e.target.value)} /></div>
+                  <div className="settings-control"><div><strong>Reset appearance</strong><span>Return to the default dark look.</span></div><button onClick={() => { setTheme("midnight"); setTextColor("#f5f5f7"); }}>Reset</button></div>
                 </>
               )}
             </div>
@@ -370,10 +487,7 @@ export default function Home() {
         </div>
       )}
 
-      <footer>
-        <span>ZEROTWO AI STUDIO</span>
-        <span>3D Face · AI Chat · Voice</span>
-      </footer>
+      <footer><span>ZEROTWO AI STUDIO</span><span>3D Face · AI Chat · Voice</span></footer>
     </main>
   );
 }
