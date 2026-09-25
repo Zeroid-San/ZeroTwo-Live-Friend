@@ -168,7 +168,7 @@ html::-webkit-scrollbar-corner,body::-webkit-scrollbar-corner,*::-webkit-scrollb
 
 /* Natural face motion */
 .avatar2d-idle{transform-origin:260px 340px;animation:avatarFloat 5.8s ease-in-out infinite}
-.avatar2d-head{transform-origin:260px 300px;transition:transform .09s cubic-bezier(.2,.7,.2,1);will-change:transform}
+.avatar2d-head{transform-origin:260px 300px;transition:none;will-change:transform}
 .avatar2d-wrap{touch-action:none}
 .avatar2d-glow{animation:avatarGlow 4.6s ease-in-out infinite}
 @keyframes avatarFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-5px,0)}}
