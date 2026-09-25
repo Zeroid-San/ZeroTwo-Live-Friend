@@ -36,11 +36,11 @@ const modelOptions = {
 
 function SidebarIcon({ type, collapsed = false }: { type: "new" | "search" | "settings" | "collapse" | "chat"; collapsed?: boolean }) {
   const common = { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  if (type === "new") return <svg {...common}><path d="M12 5v14M5 12h14" /></svg>;
+  if (type === "new") return <svg {...common}><path d="M5 17.5 6.2 13 15.8 3.4a2.1 2.1 0 0 1 3 3L9.2 16z" /><path d="m14.6 4.6 4.8 4.8M5 17.5l4.2-1.2" /></svg>;
   if (type === "search") return <svg {...common}><circle cx="10.8" cy="10.8" r="6.7" /><path d="m16 16 4.2 4.2" /></svg>;
   if (type === "settings") return <svg {...common}><path d="M9.6 4.2 10.9 3h2.2l1.3 1.2.2 1.8 1.7 1 .1-0.1 1.8-.4 1.6 1.6-.4 1.8 1 1.7 1.8.2v2.2l-1.8.2-1 1.7.4 1.8-1.6 1.6-1.8-.4-1.7 1-.2 1.8h-2.2l-.2-1.8-1.7-1-1.8.4-1.6-1.6.4-1.8-1-1.7L3.8 13v-2.2l1.8-.2 1-1.7-.4-1.8 1.6-1.6 1.8.4 1.7-1 .3-1.7Z" /><circle cx="12" cy="11.9" r="2.7" /></svg>;
   if (type === "collapse") return <svg {...common}><path d={collapsed ? "m9 6 6 6-6 6" : "m15 6-6 6 6 6"} /></svg>;
-  return <svg {...common}><path d="M5 6.5h14v10.5H5z" /><path d="m8 10 2.2 2L8 14M12 14h4" /></svg>;
+  return <svg {...common}><path d="M5 6.5h14a1.8 1.8 0 0 1 1.8 1.8v6.2a1.8 1.8 0 0 1-1.8 1.8H12l-4.7 3v-3H5a1.8 1.8 0 0 1-1.8-1.8V8.3A1.8 1.8 0 0 1 5 6.5Z" /><circle cx="9" cy="11.5" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="11.5" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="11.5" r="1" fill="currentColor" stroke="none" /></svg>;
 }
 
 function makeTitle(messages: Message[]) {
