@@ -1,13 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { TerminalPanel } from "./components/TerminalPanel";
-
-const Avatar3D = dynamic(() => import("./components/Avatar3D").then(mod => mod.Avatar3D), {
-  ssr: false,
-  loading: () => <div className="avatar3d-loading">LOADING 3D FACE...</div>
-});
+import { Avatar2D } from "./components/Avatar2D";
 
 type Message = { role: "user" | "assistant"; content: string };
 type Theme = "midnight" | "black" | "plum";
@@ -431,7 +426,7 @@ export default function Home() {
           <div className="character-wrap">
             <div className="aura" />
             <div className="character-card avatar-card">
-              <Avatar3D state={avatarState} />
+              <Avatar2D state={avatarState} />
             </div>
           </div>
 
@@ -521,7 +516,7 @@ export default function Home() {
         </div>
       )}
 
-      <footer><span>ZEROTWO AI STUDIO</span><span>3D Face · AI Chat · Voice</span></footer>
+      <footer><span>ZEROTWO AI STUDIO</span><span>2D Face · AI Chat · Voice</span></footer>
     </main>
   );
 }
