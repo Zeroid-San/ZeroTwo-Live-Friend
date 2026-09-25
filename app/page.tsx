@@ -427,9 +427,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="presence-dot"><i />{speaking ? "Speaking" : busy ? "Thinking" : listening ? "Listening" : "Ready"}</div>
+              <div className="home-chat-dock">
+                <div className="presence-dot"><i />{speaking ? "Speaking" : busy ? "Thinking" : listening ? "Listening" : "Ready"}</div>
 
-              <div className="chat-messages">
+                <div className="chat-messages">
                 {messages.slice(-8).map((message, index) => (
                   <div key={index} className={message.role === "user" ? "mini-message user" : "mini-message"}>
                     <b>{message.role === "user" ? "YOU" : "ZERO TWO"}</b>
@@ -438,11 +439,12 @@ export default function Home() {
                 ))}
               </div>
 
-              <form onSubmit={sendMessage} className="composer">
-                <button type="button" className="mic-button" onClick={startListening}>◉</button>
-                <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleComposerKeyDown} placeholder={listening ? "Listening..." : "Message ZeroTwo..."} />
-                <button className="send" disabled={busy || !input.trim()}>Send</button>
-              </form>
+                <form onSubmit={sendMessage} className="composer">
+                  <button type="button" className="mic-button" onClick={startListening} aria-label="Use microphone">◉</button>
+                  <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleComposerKeyDown} placeholder={listening ? "Listening..." : "Message ZeroTwo..."} />
+                  <button className="send" disabled={busy || !input.trim()}>Send</button>
+                </form>
+              </div>
             </div>
         </div>
       </section>
