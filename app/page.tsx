@@ -1,7 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { TerminalPanel } from "./components/TerminalPanel";
+
+const Avatar3D = dynamic(() => import("./components/Avatar3D").then(mod => mod.Avatar3D), {
+  ssr: false,
+  loading: () => <div className="avatar3d-loading">LOADING 3D FACE...</div>
+});
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -14,6 +20,7 @@ export default function Home() {
   const [input, setInput] = useState("");
   const [provider, setProvider] = useState("auto");
   const [busy, setBusy] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [listening, setListening] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -31,6 +38,7 @@ export default function Home() {
 
   async function speak(text: string) {
     if (!voiceEnabled) return;
+    setSpeaking(true);
     try {
       const response = await fetch("/api/tts", {
         method: "POST",
@@ -41,7 +49,14 @@ export default function Home() {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setSpeaking(false);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(url);
+        setSpeaking(false);
+      };
       await audio.play();
     } catch {
       if ("speechSynthesis" in window) {
@@ -49,7 +64,11 @@ export default function Home() {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.rate = 1.02;
         utterance.pitch = 1.08;
+        utterance.onend = () => setSpeaking(false);
+        utterance.onerror = () => setSpeaking(false);
         window.speechSynthesis.speak(utterance);
+      } else {
+        setSpeaking(false);
       }
     }
   }
@@ -103,14 +122,17 @@ export default function Home() {
     setMessages(starter);
     localStorage.removeItem("zt-live-messages");
     window.speechSynthesis?.cancel();
+    setSpeaking(false);
   }
+
+  const avatarState = speaking ? "speaking" : busy ? "thinking" : listening ? "listening" : "idle";
 
   return (
     <main className="studio">
       <header className="topbar">
         <div>
           <div className="brand">ZEROTWO <span>AI STUDIO</span></div>
-          <div className="subtitle">Live companion workspace</div>
+          <div className="subtitle">Live 3D companion workspace</div>
         </div>
         <div className="top-actions">
           <span className="gpu-badge"><i /> AI ONLINE</span>
@@ -130,13 +152,14 @@ export default function Home() {
           <div className="panel-title"><span>01</span> LIVE COMPANION</div>
           <div className="character-wrap">
             <div className="aura" />
-            <div className="character-card">
-              <img src="/character.svg" alt="Companion" />
-              <div className="fallback-character"><span>ZT</span></div>
+            <div className="character-card avatar-card">
+              <Avatar3D state={avatarState} />
             </div>
           </div>
           <h1>Zero Two</h1>
-          <p className="presence">{busy ? "Thinking..." : listening ? "Listening..." : "Ready to talk"}</p>
+          <p className="presence">
+            {speaking ? "Speaking..." : busy ? "Thinking..." : listening ? "Listening..." : "Ready to talk"}
+          </p>
 
           <div className="live-controls">
             <button className={listening ? "live-button active" : "live-button"} onClick={startListening}>
@@ -190,6 +213,13 @@ export default function Home() {
                 </div>
                 <button onClick={() => setVoiceEnabled(v => !v)}>{voiceEnabled ? "Enabled" : "Disabled"}</button>
               </div>
+              <div className="setting-row">
+                <div>
+                  <strong>3D Companion</strong>
+                  <span>Interactive face, blinking, head tracking, and speaking animation are enabled.</span>
+                </div>
+                <span className="status-pill">LIVE</span>
+              </div>
               <div className="setting-row terminal-setting">
                 <div>
                   <strong>Developer Terminal</strong>
@@ -215,7 +245,7 @@ export default function Home() {
 
       <footer>
         <span>ZEROTWO AI STUDIO</span>
-        <span>AI Chat + Voice</span>
+        <span>3D Face + AI Chat + Voice</span>
       </footer>
     </main>
   );
