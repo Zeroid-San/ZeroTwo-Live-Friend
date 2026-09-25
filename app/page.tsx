@@ -15,6 +15,29 @@ type Chat = { id: string; title: string; messages: Message[]; updatedAt: number 
 
 const starter: Message[] = [{ role: "assistant", content: "Hey. I’m here." }];
 
+const modelOptions = {
+  auto: [{ id: "", label: "Server default" }],
+  openai: [
+    { id: "gpt-6-astra", label: "GPT-6 Astra" },
+    { id: "gpt-6-sol", label: "GPT-6 Sol" },
+    { id: "gpt-6-luna", label: "GPT-6 Luna" },
+    { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+    { id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+    { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" }
+  ],
+  gemini: [
+    { id: "gemini-3.8-flash", label: "Gemini 3.8 Flash" },
+    { id: "gemini-3.7-flash", label: "Gemini 3.7 Flash" },
+    { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
+    { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+    { id: "gemini-3.5-flash-lite", label: "Gemini 3.5 Flash-Lite" },
+    { id: "gemini-3.1-flash-lite", label: "Gemini 3.1 Flash-Lite" },
+    { id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (Preview)" },
+    { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+    { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" }
+  ]
+} as const;
+
 function makeTitle(messages: Message[]) {
   const firstUser = messages.find(message => message.role === "user")?.content?.trim();
   if (!firstUser) return "New chat";
@@ -30,7 +53,7 @@ export default function Home() {
   const [renameValue, setRenameValue] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [input, setInput] = useState("");
-  const [provider, setProvider] = useState("auto");
+  const [provider, setProvider] = useState<"auto" | "openai" | "gemini">("auto");
   const [model, setModel] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,11 +93,11 @@ export default function Home() {
     const savedTextColor = localStorage.getItem("zt-text-color");
     if (savedTextColor) setTextColor(savedTextColor);
 
-    const savedProvider = localStorage.getItem("zt-provider");
-    if (savedProvider) setProvider(savedProvider);
+    const savedProvider = localStorage.getItem("zt-provider") as "auto" | "openai" | "gemini" | null;
+    if (savedProvider === "auto" || savedProvider === "openai" || savedProvider === "gemini") setProvider(savedProvider);
 
     const savedModel = localStorage.getItem("zt-model");
-    if (savedModel) setModel(savedModel);
+    if (savedModel !== null) setModel(savedModel);
 
     const savedVoice = localStorage.getItem("zt-voice");
     if (savedVoice !== null) setVoiceEnabled(savedVoice === "true");
@@ -154,6 +177,15 @@ export default function Home() {
   function openSettings(tab: "general" | "ai" | "appearance") {
     setSettingsTab(tab);
     setSettingsOpen(true);
+  }
+
+  function changeProvider(nextProvider: "auto" | "openai" | "gemini") {
+    setProvider(nextProvider);
+    setModel(nextProvider === "auto" ? "" : modelOptions[nextProvider][0].id);
+  }
+
+  function changeModel(nextModel: string) {
+    setModel(nextModel);
   }
 
   function saveApiSettings() {
@@ -458,11 +490,18 @@ export default function Home() {
                   <div className="settings-section-title">AI & API</div>
                   <div className="api-warning">Use a session API key for your own testing, or leave this blank to use the secure server-side Vercel key.</div>
                   <label className="field-label">Provider</label>
-                  <select className="settings-input" value={provider} onChange={e => setProvider(e.target.value)}><option value="auto">Auto</option><option value="openai">OpenAI / ChatGPT</option><option value="gemini">Google Gemini</option></select>
+                  <label className="field-label">AI provider</label>
+                  <select className="settings-input" value={provider} onChange={e => changeProvider(e.target.value as "auto" | "openai" | "gemini")}>
+                    <option value="auto">Auto (server configured)</option>
+                    <option value="openai">OpenAI / ChatGPT</option>
+                    <option value="gemini">Google Gemini</option>
+                  </select>
+                  <label className="field-label">Model</label>
+                  <select className="settings-input" value={model} onChange={e => changeModel(e.target.value)}>
+                    {modelOptions[provider].map(option => <option key={option.id || "default"} value={option.id}>{option.label}</option>)}
+                  </select>
                   <label className="field-label">API key</label>
                   <input className="settings-input" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key here" />
-                  <label className="field-label">Model (optional)</label>
-                  <input className="settings-input" value={model} onChange={e => setModel(e.target.value)} placeholder={provider === "gemini" ? "e.g. gemini-3.8-flash" : "e.g. gpt-5.6-luna"} />
                   <div className="api-actions"><button onClick={saveApiSettings} className="save-button">Save API settings</button><button onClick={() => { setApiKey(""); try { sessionStorage.removeItem("zt-api-key"); } catch {} }}>Clear key</button></div>
                   <p className="settings-small">The custom key is stored only in this browser session. It is never committed to GitHub.</p>
                 </>
