@@ -1,39 +1,67 @@
-# Zero Two Live Friend
+# ZeroTwo AI Studio
 
-A dark, live AI companion website built with Next.js and ready for Vercel.
+A dark two-panel AI workspace: a live Zero Two companion on the left and a real-time terminal on the right.
 
-## Providers
+## Architecture
 
-The server supports OpenAI and Gemini. Set one or both API keys as Vercel environment variables.
+```text
+GitHub repository
+   |
+   +--> Vercel: Next.js website
+   |      +-- Live chat
+   |      +-- microphone input
+   |      +-- GPU TTS proxy
+   |      +-- browser terminal UI
+   |
+   +--> GPU provider: services/gpu
+          +-- FastAPI
+          +-- Chatterbox TTS
+          +-- WebSocket terminal
+          +-- persistent /workspace
+```
 
-OpenAI:
-- OPENAI_API_KEY
-- OPENAI_MODEL
+## Repository
 
-Gemini:
-- GEMINI_API_KEY
-- GEMINI_MODEL
+- `app/` — Vercel/Next.js web application.
+- `app/components/TerminalPanel.tsx` — terminal UI and WebSocket client.
+- `app/api/chat/route.ts` — OpenAI/Gemini chat endpoint.
+- `app/api/tts/route.ts` — server-side proxy to the GPU voice service.
+- `services/gpu/` — Dockerized GPU backend for Chatterbox and terminal sessions.
 
-Optional:
-- AI_PROVIDER
+## Vercel environment variables
 
-The UI can use Auto provider, OpenAI, or Gemini.
+Set these in Vercel Project Settings > Environment Variables:
 
-## Local setup
+- `OPENAI_API_KEY` and optionally `OPENAI_MODEL`
+- `GEMINI_API_KEY` and optionally `GEMINI_MODEL`
+- `GPU_TTS_URL` — public HTTPS URL for the GPU `/tts` endpoint
+- `GPU_API_KEY` — shared secret for the GPU TTS endpoint
+- `NEXT_PUBLIC_TERMINAL_WS_URL` — `wss://.../ws/terminal` URL for the GPU terminal
 
-1. Copy .env.example to .env.local.
-2. Add your API key.
-3. Run npm install.
-4. Run npm run dev.
+Never commit API keys or voice recordings.
 
-Never commit .env.local or an API key.
+## GPU backend
 
-## Character image
+The GPU backend expects an NVIDIA CUDA environment. Mount persistent storage at `/workspace` and put the permitted voice reference at:
 
-Put a licensed or user-owned image at public/character.png. If no image exists, the site displays an original fallback avatar.
+`/workspace/voices/reference.wav`
 
-## Vercel
+Set `GPU_API_KEY` on the GPU machine to the same secret configured in Vercel.
 
-Import this repository into Vercel and add the API keys under Project Settings > Environment Variables. Redeploy after adding or changing keys.
+Build and run the container:
 
-The AI keys are used only in the server route and are never sent to the browser.
+```bash
+docker build -t zerotwo-gpu ./services/gpu
+docker run --gpus all -p 8000:8000 -e GPU_API_KEY='your-secret' -v zerotwo-workspace:/workspace zerotwo-gpu
+```
+
+## Security
+
+The terminal backend currently demonstrates a PTY connection for the private GPU workspace. Before exposing it to the public internet, put it behind authentication and an isolated sandbox/container per user. Do not expose an unrestricted host shell to untrusted users.
+
+## Local web development
+
+```bash
+npm install
+npm run dev
+```
