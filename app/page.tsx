@@ -33,6 +33,16 @@ const modelOptions = {
   ]
 } as const;
 
+
+function SidebarIcon({ type }: { type: "new" | "search" | "settings" | "collapse" | "chat" }) {
+  const common = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (type === "new") return <svg {...common}><path d="M12 5v14M5 12h14" /></svg>;
+  if (type === "search") return <svg {...common}><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4 4" /></svg>;
+  if (type === "settings") return <svg {...common}><path d="M12 3.8 14 5l2.2-.4 1.4 1.8-.6 2.1 1.2 1.8 2.1.5v2.4l-2.1.5-1.2 1.8.6 2.1-1.4 1.8-2.2-.4-2 1.2-2-1.2-2.2.4-1.4-1.8.6-2.1-1.2-1.8-2.1-.5V11l2.1-.5L6.6 8.5 6 6.4 7.4 4.6l2.2.4z" /><circle cx="12" cy="12" r="2.8" /></svg>;
+  if (type === "collapse") return <svg {...common}><path d="M15 6 9 12l6 6" /></svg>;
+  return <svg {...common}><path d="M5 5h14v11H5z" /><path d="M8 19h8M12 16v3" /></svg>;
+}
+
 function makeTitle(messages: Message[]) {
   const firstUser = messages.find(message => message.role === "user")?.content?.trim();
   if (!firstUser) return "New chat";
@@ -47,7 +57,6 @@ export default function Home() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeView, setActiveView] = useState<"home" | "ai" | "appearance">("home");
   const [input, setInput] = useState("");
   const [provider, setProvider] = useState<"auto" | "openai" | "gemini">("auto");
   const [model, setModel] = useState("");
@@ -83,8 +92,6 @@ export default function Home() {
     const savedSidebar = localStorage.getItem("zt-sidebar-collapsed");
     if (savedSidebar !== null) setSidebarCollapsed(savedSidebar === "true");
 
-    const savedView = localStorage.getItem("zt-active-view");
-    if (savedView === "home" || savedView === "ai" || savedView === "appearance") setActiveView(savedView);
 
     const savedTheme = localStorage.getItem("zt-theme") as Theme | null;
     if (savedTheme) setTheme(savedTheme);
@@ -144,9 +151,6 @@ export default function Home() {
     localStorage.setItem("zt-sidebar-collapsed", String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
-  useEffect(() => {
-    localStorage.setItem("zt-active-view", activeView);
-  }, [activeView]);
 
   useEffect(() => {
     localStorage.setItem("zt-theme", theme);
@@ -340,7 +344,7 @@ export default function Home() {
     <main className={sidebarCollapsed ? "studio sidebar-is-collapsed" : "studio"}>
       <aside className="sidebar">
         <div className="sidebar-top">
-          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>{sidebarCollapsed ? "»" : "«"}</button>
+          <button className="sidebar-toggle" onClick={() => setSidebarCollapsed(v => !v)} aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}><SidebarIcon type="collapse" /></button>
           {!sidebarCollapsed && (
             <div className="sidebar-brand">
               <div className="sidebar-mark">ZT</div>
@@ -350,22 +354,16 @@ export default function Home() {
         </div>
 
         <button className="new-chat" onClick={startNewChat} title="New chat">
-          <span>＋</span>
+          <span className="icon-wrap"><SidebarIcon type="new" /></span>
           {!sidebarCollapsed && "New chat"}
         </button>
 
         {!sidebarCollapsed && (
           <div className="chat-search">
-            <span>⌕</span>
+            <span className="icon-wrap"><SidebarIcon type="search" /></span>
             <input value={searchChats} onChange={e => setSearchChats(e.target.value)} placeholder="Search chats" />
           </div>
         )}
-
-        <nav className="sidebar-nav">
-          <button className={activeView === "home" ? "side-item active" : "side-item"} onClick={() => setActiveView("home")} title="Home"><span>⌂</span>{!sidebarCollapsed && "Home"}</button>
-          <button className={activeView === "ai" ? "side-item active" : "side-item"} onClick={() => setActiveView("ai")} title="AI"><span>✦</span>{!sidebarCollapsed && "AI"}</button>
-          <button className={activeView === "appearance" ? "side-item active" : "side-item"} onClick={() => setActiveView("appearance")} title="Appearance"><span>◈</span>{!sidebarCollapsed && "Appearance"}</button>
-        </nav>
 
         {!sidebarCollapsed && (
           <div className="chat-history">
@@ -390,7 +388,7 @@ export default function Home() {
                   ) : (
                     <>
                       <button className="chat-open" onClick={() => openChat(chat)}>
-                        <span className="chat-icon">◌</span>
+                        <span className="chat-icon"><SidebarIcon type="chat" /></span>
                         <span className="chat-title">{chat.title}</span>
                       </button>
                       <div className="chat-actions">
@@ -408,7 +406,7 @@ export default function Home() {
         <div className="sidebar-spacer" />
 
         <button className="side-item settings-item" onClick={() => openSettings("general")} title="Settings">
-          <span>⚙</span>
+          <span className="icon-wrap"><SidebarIcon type="settings" /></span>
           {!sidebarCollapsed && "Settings"}
         </button>
 
@@ -429,8 +427,7 @@ export default function Home() {
         </header>
 
 <div className="main-view">
-          {activeView === "home" && (
-            <div className="companion-stage">
+          <div className="companion-stage">
               <div className="panel-title"><span>HOME</span> COMPANION</div>
 
               <div className="character-wrap">
@@ -463,64 +460,6 @@ export default function Home() {
                 <button className="send" disabled={busy || !input.trim()}>Send</button>
               </form>
             </div>
-          )}
-
-          {activeView === "ai" && (
-            <div className="page-settings-view">
-              <div className="page-settings-header">
-                <span className="page-settings-kicker">AI</span>
-                <h1>AI & API</h1>
-                <p>Choose the provider and model used for chat.</p>
-              </div>
-              <div className="page-settings-card">
-                <label className="field-label">AI provider</label>
-                <select className="settings-input" value={provider} onChange={e => changeProvider(e.target.value as "auto" | "openai" | "gemini")}>
-                  <option value="auto">Auto (server configured)</option>
-                  <option value="openai">OpenAI / ChatGPT</option>
-                  <option value="gemini">Google Gemini</option>
-                </select>
-                <label className="field-label">Model</label>
-                <select className="settings-input" value={model} onChange={e => changeModel(e.target.value)}>
-                  {modelOptions[provider].map(option => <option key={option.id || "default"} value={option.id}>{option.label}</option>)}
-                </select>
-                <label className="field-label">API key</label>
-                <input className="settings-input" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your API key here" />
-                <div className="api-actions">
-                  <button onClick={saveApiSettings} className="save-button">Save API settings</button>
-                  <button onClick={() => { setApiKey(""); try { sessionStorage.removeItem("zt-api-key"); } catch {} }}>Clear key</button>
-                </div>
-                <p className="settings-small">Leave API key blank to use the server-side Vercel key. Custom keys are stored only in this browser session.</p>
-              </div>
-            </div>
-          )}
-
-          {activeView === "appearance" && (
-            <div className="page-settings-view">
-              <div className="page-settings-header">
-                <span className="page-settings-kicker">APPEARANCE</span>
-                <h1>Appearance</h1>
-                <p>Change the website background and text color.</p>
-              </div>
-              <div className="page-settings-card">
-                <div className="theme-grid">
-                  {(["midnight", "black", "plum"] as Theme[]).map(item => (
-                    <button key={item} className={theme === item ? "theme-option active" : "theme-option"} onClick={() => setTheme(item)}>
-                      <span className={"theme-preview " + item} />
-                      <b>{item[0].toUpperCase() + item.slice(1)}</b>
-                    </button>
-                  ))}
-                </div>
-                <div className="settings-control">
-                  <div><strong>Font color</strong><span>Choose the main website text color.</span></div>
-                  <input className="color-input" type="color" value={textColor} onChange={e => setTextColor(e.target.value)} />
-                </div>
-                <div className="settings-control">
-                  <div><strong>Reset appearance</strong><span>Return to the default dark look.</span></div>
-                  <button onClick={() => { setTheme("midnight"); setTextColor("#f5f5f7"); }}>Reset</button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
