@@ -94,7 +94,7 @@ export function Avatar2D({ state = "idle" }: { state?: AvatarState }) {
 
 
   const eyeRy = blink ? 2.2 : state === "thinking" ? 24 : 29;
-  const pupilScale = 0.86 + motion.distance * 0.1;
+  const pupilScale = 0.9;
 
   return (
     <div ref={wrapperRef} className="avatar2d-wrap" aria-label="Interactive anime companion">
